@@ -1,0 +1,3 @@
+api_authentication:
+    resource: ../../src/Controller/AuthController.php
+    type: attribute
