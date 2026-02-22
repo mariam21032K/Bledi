@@ -138,13 +138,11 @@ class SignalementController extends AbstractController
         $constraint = new Assert\Collection([
             'title' => [
                 new Assert\NotBlank(message: 'Title is required'),
-                /** @phpstan-ignore-next-line */
-                new Assert\Length(['min' => 5, 'max' => 255, 'minMessage' => 'Title must be at least 5 characters', 'maxMessage' => 'Title cannot exceed 255 characters']),
+                new Assert\Length(min: 5, max: 255, minMessage: 'Title must be at least 5 characters', maxMessage: 'Title cannot exceed 255 characters'),
             ],
             'description' => [
                 new Assert\NotBlank(message: 'Description is required'),
-                /** @phpstan-ignore-next-line */
-                new Assert\Length(['min' => 10, 'minMessage' => 'Description must be at least 10 characters']),
+                new Assert\Length(min: 10, minMessage: 'Description must be at least 10 characters'),
             ],
             'categoryId' => [
                 new Assert\NotBlank(message: 'Category is required'),
@@ -160,8 +158,7 @@ class SignalementController extends AbstractController
             ],
             'address' => [
                 new Assert\NotBlank(message: 'Address is required'),
-                /** @phpstan-ignore-next-line */
-                new Assert\Length(['min' => 5, 'minMessage' => 'Address must be at least 5 characters']),
+                new Assert\Length(min: 5, minMessage: 'Address must be at least 5 characters'),
             ],
             'priority' => new Assert\Optional([
                 new Assert\Choice(['choices' => ['LOW', 'MEDIUM', 'HIGH', 'URGENT'], 'message' => 'Invalid priority value']),

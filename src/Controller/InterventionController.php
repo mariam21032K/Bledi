@@ -76,7 +76,7 @@ class InterventionController extends AbstractController
             'signalementId' => [new Assert\NotBlank(), new Assert\Type(['type' => 'integer'])],
             'startDate' => [new Assert\NotBlank()],
             'endDate' => new Assert\Optional(),
-            'notes' => [new Assert\NotBlank(), /** @phpstan-ignore-next-line */ new Assert\Length(['min' => 5])],
+            'notes' => [new Assert\NotBlank(), new Assert\Length(min: 5)],
         ]);
 
         $violations = $this->validator->validate($data, $constraint);

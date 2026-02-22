@@ -43,6 +43,10 @@ class Intervention
     #[ORM\JoinColumn(nullable: false)]
     private ?Signalement $signalement = null;
 
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'assigned_agent_id', referencedColumnName: 'id', nullable: true)]
+    private ?User $assignedAgent = null;
+
     public function __construct()
     {
         $this->startDate = new DateTime();
@@ -158,6 +162,18 @@ class Intervention
     public function setSignalement(?Signalement $signalement): static
     {
         $this->signalement = $signalement;
+
+        return $this;
+    }
+
+    public function getAssignedAgent(): ?User
+    {
+        return $this->assignedAgent;
+    }
+
+    public function setAssignedAgent(?User $assignedAgent): static
+    {
+        $this->assignedAgent = $assignedAgent;
 
         return $this;
     }

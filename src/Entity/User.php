@@ -60,6 +60,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $refreshToken = null;
 
+    #[ORM\Column(length: 5, options: ['default' => 'en'])]
+    private string $language = 'en';
+
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Signalement::class)]
     private Collection $signalements;
 
@@ -352,6 +355,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRefreshToken(?string $refreshToken): static
     {
         $this->refreshToken = $refreshToken;
+
+        return $this;
+    }
+
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    public function setLanguage(string $language): static
+    {
+        // Validate language code (2-5 characters, e.g., 'en', 'fr', 'ar')
+        if (in_array($language, ['en', 'fr', 'ar', 'es'])) {
+            $this->language = $language;
+        }
 
         return $this;
     }

@@ -57,13 +57,11 @@ class CategoryController extends AbstractController
         $constraint = new Assert\Collection([
             'name' => [
                 new Assert\NotBlank(message: 'Name is required'),
-                /** @phpstan-ignore-next-line */
-                new Assert\Length(['min' => 3, 'max' => 100]),
+                new Assert\Length(min: 3, max: 100),
             ],
             'description' => [
                 new Assert\NotBlank(message: 'Description is required'),
-                /** @phpstan-ignore-next-line */
-                new Assert\Length(['min' => 5, 'max' => 500]),
+                new Assert\Length(min: 5, max: 500),
             ],
         ]);
 
