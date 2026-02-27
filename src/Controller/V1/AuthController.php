@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller;
+namespace App\Controller\V1;
 
 use App\Entity\AuditLog;
 use App\Entity\User;
@@ -20,8 +20,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api/v2', name: 'api_v2_')]
-class AuthV2Controller extends AbstractController
+#[Route('/api/v1', name: 'api_v1_')]
+class AuthController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -37,22 +37,33 @@ class AuthV2Controller extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
+        // Validate input
         if (!isset($data['email']) || !isset($data['password'])) {
-            return $this->json(['message' => 'Email and password are required'], Response::HTTP_BAD_REQUEST);
+            return $this->json([
+                'error' => 'INVALID_CREDENTIALS',
+                'message' => 'Email and password are required',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $email = trim($data['email']);
         $password = $data['password'];
 
+        // Validate email format
         $constraint = new Assert\Email();
         $violations = $this->validator->validate($email, $constraint);
         if (count($violations) > 0) {
-            return $this->json(['message' => 'Invalid email format'], Response::HTTP_BAD_REQUEST);
+            return $this->json([
+                'error' => 'INVALID_EMAIL',
+                'message' => 'Invalid email format',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
-        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+        $user = $this->entityManager->getRepository(User::class)->findOneBy([
+            'email' => $email,
+        ]);
 
         if (!$user || !$this->passwordHasher->isPasswordValid($user, $password)) {
+            // Log failed authentication attempt
             $auditLog = new AuditLog();
             $auditLog->setAction('LOGIN_FAILED');
             $auditLog->setEntityName('User');
@@ -60,10 +71,14 @@ class AuthV2Controller extends AbstractController
             $this->entityManager->persist($auditLog);
             $this->entityManager->flush();
 
-            return $this->json(['message' => 'Invalid email or password'], Response::HTTP_UNAUTHORIZED);
+            return $this->json([
+                'error' => 'INVALID_CREDENTIALS',
+                'message' => 'Invalid email or password',
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         if (!$user->isActive()) {
+            // Log disabled account access attempt
             $auditLog = new AuditLog();
             $auditLog->setAction('LOGIN_FAILED');
             $auditLog->setUser($user);
@@ -72,11 +87,13 @@ class AuthV2Controller extends AbstractController
             $this->entityManager->persist($auditLog);
             $this->entityManager->flush();
 
-            return $this->json(['message' => 'This account has been disabled'], Response::HTTP_FORBIDDEN);
+            return $this->json([
+                'error' => 'ACCOUNT_DISABLED',
+                'message' => 'This account has been disabled',
+            ], Response::HTTP_FORBIDDEN);
         }
 
-        $tokenPair = $this->tokenService->generateTokenPair($user);
-
+        // Log successful login
         $auditLog = new AuditLog();
         $auditLog->setAction('LOGIN_SUCCESS');
         $auditLog->setUser($user);
@@ -84,6 +101,8 @@ class AuthV2Controller extends AbstractController
         $auditLog->setChanges(json_encode(['ip' => $request->getClientIp()]));
         $this->entityManager->persist($auditLog);
         $this->entityManager->flush();
+
+        $tokenPair = $this->tokenService->generateTokenPair($user);
 
         return $this->json([
             'accessToken' => $tokenPair['accessToken'],
@@ -95,9 +114,7 @@ class AuthV2Controller extends AbstractController
                 'email' => $user->getEmail(),
                 'firstName' => $user->getFirstName(),
                 'lastName' => $user->getLastName(),
-                'phone' => $user->getPhone(),
                 'role' => $user->getUserRole()?->label(),
-                'language' => $user->getLanguage(),
             ],
         ], Response::HTTP_OK);
     }
@@ -107,10 +124,15 @@ class AuthV2Controller extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
+        // Validate required fields
         $requiredFields = ['email', 'password', 'firstName', 'lastName'];
         foreach ($requiredFields as $field) {
             if (!isset($data[$field]) || empty($data[$field])) {
-                return $this->json(['message' => sprintf('%s is required', $field)], Response::HTTP_BAD_REQUEST);
+                return $this->json([
+                    'error' => 'MISSING_FIELD',
+                    'message' => ucfirst($field) . ' is required',
+                    'field' => $field,
+                ], Response::HTTP_BAD_REQUEST);
             }
         }
 
@@ -120,26 +142,44 @@ class AuthV2Controller extends AbstractController
         $password = $data['password'];
         $phone = isset($data['phone']) ? trim($data['phone']) : '';
 
+        // Validate email format
         $constraint = new Assert\Email();
         $violations = $this->validator->validate($email, $constraint);
         if (count($violations) > 0) {
-            return $this->json(['message' => 'Invalid email format'], Response::HTTP_BAD_REQUEST);
-        }
+            return $this->json([
+                'error' => 'INVALID_EMAIL',
+                'message' => 'Invalid email format',
+            ], Response::HTTP_BAD_REQUEST);
+            }
 
+        // Validate password strength (minimum 8 characters, at least one uppercase, one number)
         if (strlen($password) < 8) {
-            return $this->json(['message' => 'Password must be at least 8 characters long'], Response::HTTP_BAD_REQUEST);
+            return $this->json([
+                'error' => 'WEAK_PASSWORD',
+                'message' => 'Password must be at least 8 characters long',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         if (!preg_match('/[A-Z]/', $password) || !preg_match('/[0-9]/', $password)) {
-            return $this->json(['message' => 'Password must contain at least one uppercase letter and one number'], Response::HTTP_BAD_REQUEST);
+            return $this->json([
+                'error' => 'WEAK_PASSWORD',
+                'message' => 'Password must contain at least one uppercase letter and one number',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
-        $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+        // Check if user already exists
+        $existingUser = $this->entityManager->getRepository(User::class)->findOneBy([
+            'email' => $email,
+        ]);
 
         if ($existingUser) {
-            return $this->json(['message' => 'An account with this email already exists'], Response::HTTP_CONFLICT);
+            return $this->json([
+                'error' => 'USER_EXISTS',
+                'message' => 'An account with this email already exists',
+            ], Response::HTTP_CONFLICT);
         }
 
+        // Create new user with default CITIZEN role
         $user = new User();
         $user->setEmail($email);
         $user->setFirstName($firstName);
@@ -153,6 +193,7 @@ class AuthV2Controller extends AbstractController
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
+        // Log user registration
         $auditLog = new AuditLog();
         $auditLog->setAction('USER_REGISTERED');
         $auditLog->setUser($user);
@@ -174,9 +215,7 @@ class AuthV2Controller extends AbstractController
                 'email' => $user->getEmail(),
                 'firstName' => $user->getFirstName(),
                 'lastName' => $user->getLastName(),
-                'phone' => $user->getPhone(),
                 'role' => $user->getUserRole()?->label(),
-                'language' => $user->getLanguage(),
             ],
         ], Response::HTTP_CREATED);
     }
@@ -186,20 +225,33 @@ class AuthV2Controller extends AbstractController
     public function me(): JsonResponse
     {
         $user = $this->getUser();
+
         if (!$user) {
-            return $this->json(['message' => 'User not authenticated'], Response::HTTP_UNAUTHORIZED);
+            return $this->json([
+                'error' => 'NOT_AUTHENTICATED',
+                'message' => 'User not authenticated',
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         return $this->json([
-            'id' => $user->getId(),
-            'email' => $user->getEmail(),
-            'firstName' => $user->getFirstName(),
-            'lastName' => $user->getLastName(),
-            'phone' => $user->getPhone(),
-            'role' => $user->getUserRole()?->label(),
-            'isActive' => $user->isActive(),
-            'language' => $user->getLanguage(),
-            'createdAt' => $user->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'user' => [
+                /** @phpstan-ignore-next-line */
+                'id' => $user->getId(),
+                /** @phpstan-ignore-next-line */
+                'email' => $user->getEmail(),
+                /** @phpstan-ignore-next-line */
+                'firstName' => $user->getFirstName(),
+                /** @phpstan-ignore-next-line */
+                'lastName' => $user->getLastName(),
+                /** @phpstan-ignore-next-line */
+                'phone' => $user->getPhone(),
+                /** @phpstan-ignore-next-line */
+                'role' => $user->getUserRole()?->label(),
+                /** @phpstan-ignore-next-line */
+                'isActive' => $user->isActive(),
+                /** @phpstan-ignore-next-line */
+                'createdAt' => $user->getCreatedAt()?->format('Y-m-d H:i:s'),
+            ],
         ], Response::HTTP_OK);
     }
 
@@ -209,19 +261,23 @@ class AuthV2Controller extends AbstractController
     {
         $user = $this->getUser();
 
+        // Log logout
         if ($user) {
             $auditLog = new AuditLog();
             $auditLog->setAction('LOGOUT');
             $auditLog->setUser($user);
             $auditLog->setEntityName('User');
-            $auditLog->setChanges(json_encode(['ip' => null]));
             $this->entityManager->persist($auditLog);
-            $this->entityManager->flush();
+            
+            // Invalidate refresh token
+            $this->tokenService->invalidateRefreshToken($user);
         }
 
         $tokenStorage->setToken(null);
 
-        return $this->json(['message' => 'Logged out successfully'], Response::HTTP_OK);
+        return $this->json([
+            'message' => 'Logged out successfully',
+        ], Response::HTTP_OK);
     }
 
     #[Route('/refresh', name: 'refresh', methods: ['POST'])]
@@ -230,36 +286,60 @@ class AuthV2Controller extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         if (!isset($data['refreshToken']) || !isset($data['userId'])) {
-            return $this->json(['message' => 'refreshToken and userId are required'], Response::HTTP_BAD_REQUEST);
+            return $this->json([
+                'error' => 'MISSING_FIELD',
+                'message' => 'refreshToken and userId are required',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $user = $this->entityManager->getRepository(User::class)->find($data['userId']);
 
         if (!$user) {
-            return $this->json(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
+            return $this->json([
+                'error' => 'USER_NOT_FOUND',
+                'message' => 'User not found',
+            ], Response::HTTP_NOT_FOUND);
         }
 
         $tokenPair = $this->tokenService->refreshAccessToken($user, $data['refreshToken']);
 
         if (!$tokenPair) {
-            return $this->json(['message' => 'Invalid refresh token'], Response::HTTP_UNAUTHORIZED);
+            return $this->json([
+                'error' => 'INVALID_REFRESH_TOKEN',
+                'message' => 'Invalid refresh token',
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
-        return $this->json(['expiresIn' => $tokenPair['expiresIn']], Response::HTTP_OK);
+        return $this->json([
+            'accessToken' => $tokenPair['accessToken'],
+            'refreshToken' => $tokenPair['refreshToken'],
+            'tokenType' => $tokenPair['tokenType'],
+            'expiresIn' => $tokenPair['expiresIn'],
+        ], Response::HTTP_OK);
     }
 
     #[Route('/users/language', name: 'get_user_language', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function getUserLanguage(): JsonResponse
     {
+        /** @var User $user */
         $user = $this->getUser();
+
         if (!$user) {
-            return $this->json(['message' => 'User not authenticated'], Response::HTTP_UNAUTHORIZED);
+            return $this->json([
+                'error' => 'UNAUTHORIZED',
+                'message' => 'User not authenticated',
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         return $this->json([
             'language' => $user->getLanguage(),
-            'supportedLanguages' => ['en', 'fr', 'ar', 'es'],
+            'supportedLanguages' => [
+                'en' => 'English',
+                'fr' => 'Français',
+                'ar' => 'العربية',
+                'es' => 'Español',
+            ],
         ], Response::HTTP_OK);
     }
 
@@ -267,15 +347,24 @@ class AuthV2Controller extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function setUserLanguage(Request $request): JsonResponse
     {
+        /** @var User $user */
         $user = $this->getUser();
+
         if (!$user) {
-            return $this->json(['message' => 'User not authenticated'], Response::HTTP_UNAUTHORIZED);
+            return $this->json([
+                'error' => 'UNAUTHORIZED',
+                'message' => 'User not authenticated',
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         $data = json_decode($request->getContent(), true);
 
         if (!isset($data['language']) || empty($data['language'])) {
-            return $this->json(['message' => 'language is required'], Response::HTTP_BAD_REQUEST);
+            return $this->json([
+                'error' => 'MISSING_FIELD',
+                'message' => 'Language is required',
+                'field' => 'language',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $language = trim($data['language']);
@@ -283,18 +372,24 @@ class AuthV2Controller extends AbstractController
 
         if (!in_array($language, $supportedLanguages)) {
             return $this->json([
-                'message' => 'Unsupported language',
+                'error' => 'INVALID_LANGUAGE',
+                'message' => 'Language not supported. Supported languages: ' . implode(', ', $supportedLanguages),
                 'supportedLanguages' => $supportedLanguages,
             ], Response::HTTP_BAD_REQUEST);
         }
 
+        $oldLanguage = $user->getLanguage();
         $user->setLanguage($language);
 
+        // Log the language change
         $auditLog = new AuditLog();
         $auditLog->setAction('LANGUAGE_CHANGED');
         $auditLog->setUser($user);
         $auditLog->setEntityName('User');
-        $auditLog->setChanges(json_encode(['newLanguage' => $language]));
+        $auditLog->setChanges(json_encode([
+            'oldLanguage' => $oldLanguage,
+            'newLanguage' => $language,
+        ]));
         $this->entityManager->persist($auditLog);
         $this->entityManager->persist($user);
         $this->entityManager->flush();
