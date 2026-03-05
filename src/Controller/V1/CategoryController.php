@@ -154,7 +154,6 @@ class CategoryController extends AbstractController
 
         return $this->json(['success' => true, 'message' => 'Updated', 'data' => $this->serializeCategory($category)]);
     }
-
     #[Route('/{id}', name: 'delete_category', methods: ['DELETE'])]
     #[IsGranted('ROLE_ADMIN')]
     public function deleteCategory(Category $category): JsonResponse

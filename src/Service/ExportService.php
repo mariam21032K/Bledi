@@ -22,64 +22,6 @@ class ExportService
     }
 
     /**
-     * Export signalements to CSV format
-     */
-    public function exportSignalementsToCSV(?string $category = null, ?string $status = null): StreamedResponse
-    {
-        $signalements = $this->getFilteredSignalements($category, $status);
-
-        $response = new StreamedResponse(function () use ($signalements) {
-            $handle = fopen('php://output', 'w');
-
-            // Write header
-            fputcsv($handle, [
-                'ID',
-                'Titre',
-                'Description',
-                'Catégorie',
-                'Statut',
-                'Priorité',
-                'Localisation',
-                'Latitude',
-                'Longitude',
-                'Date de création',
-                'Auteur',
-                'Email auteur',
-                'Nombre d\'interventions',
-                'Nombre de médias',
-            ]);
-
-            // Write rows
-            foreach ($signalements as $signalement) {
-                fputcsv($handle, [
-                    $signalement->getId(),
-                    $signalement->getTitle(),
-                    substr($signalement->getDescription() ?? '', 0, 100),
-                    $signalement->getCategory()->getName(),
-                    $signalement->getStatus()?->value,
-                    $signalement->getPriority()?->value,
-                    $signalement->getAddress() ?? 'N/A',
-                    $signalement->getLatitude(),
-                    $signalement->getLongitude(),
-                    $signalement->getCreatedAt()?->format('d/m/Y H:i:s'),
-                    $signalement->getUser()->getFirstName() . ' ' . $signalement->getUser()->getLastName(),
-                    $signalement->getUser()->getEmail(),
-                    count($signalement->getInterventions()),
-                    count($signalement->getMedias()),
-                ]);
-            }
-
-            fclose($handle);
-        });
-
-        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
-        $response->headers->set('Content-Disposition', 'attachment; filename="signalements_' . date('Y-m-d_H-i-s') . '.csv"');
-        $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
-
-        return $response;
-    }
-
-    /**
      * Export signalements to Excel format (XLSX compatible)
      */
     public function exportSignalementsToExcel(?string $category = null, ?string $status = null): StreamedResponse
@@ -158,36 +100,6 @@ class ExportService
         return $response;
     }
 
-    /**
-     * Export signalements to JSON format
-     */
-    public function exportSignalementsToJSON(?string $category = null, ?string $status = null): array
-    {
-        $signalements = $this->getFilteredSignalements($category, $status);
-
-        return array_map(fn($signalement) => [
-            'id' => $signalement->getId(),
-            'title' => $signalement->getTitle(),
-            'description' => $signalement->getDescription(),
-            'category' => $signalement->getCategory()->getName(),
-            'status' => $signalement->getStatus()?->value,
-            'priority' => $signalement->getPriority()?->value,
-            'location' => [
-                'latitude' => $signalement->getLatitude(),
-                'longitude' => $signalement->getLongitude(),
-                'address' => $signalement->getAddress(),
-            ],
-            'createdAt' => $signalement->getCreatedAt()?->format('Y-m-d\TH:i:s'),
-            'updatedAt' => $signalement->getUpdatedAt()?->format('Y-m-d\TH:i:s'),
-            'user' => [
-                'id' => $signalement->getUser()->getId(),
-                'name' => $signalement->getUser()->getFirstName() . ' ' . $signalement->getUser()->getLastName(),
-                'email' => $signalement->getUser()->getEmail(),
-            ],
-            'interventions' => count($signalement->getInterventions()),
-            'medias' => count($signalement->getMedias()),
-        ], $signalements);
-    }
 
     /**
      * Get filtered signalements
@@ -288,7 +200,7 @@ class ExportService
 </head>
 <body>
     <div class="container">
-        <h1>📊 Reports Dashboard - BLEDI</h1>
+        <h1>Reports Dashboard - BLEDI</h1>
         <div class="header-info">
             <p><strong>Generated on:</strong> {$generatedDate}</p>
             <p><strong>Total Reports:</strong> {$stats['totalSignalements']}</p>
@@ -534,7 +446,7 @@ HTML;
 </head>
 <body>
     <div class="container">
-        <h1>📊 Statistics Report - BLEDI</h1>
+        <h1> Statistics Report - BLEDI</h1>
         <div class="header-info">
             <p><strong>Generated on:</strong> {$generatedDate}</p>
         </div>

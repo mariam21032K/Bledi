@@ -19,30 +19,6 @@ class ExportController extends AbstractController
     ) {
     }
 
-    #[Route('/signalements/csv', name: 'export_signalements_csv', methods: ['GET'])]
-    public function exportSignalementsCSV(Request $request): StreamedResponse
-    {
-        $category = $request->query->get('category');
-        $status = $request->query->get('status');
-
-        return $this->exportService->exportSignalementsToCSV($category, $status);
-    }
-
-    #[Route('/signalements/json', name: 'export_signalements_json', methods: ['GET'])]
-    public function exportSignalementsJSON(Request $request): JsonResponse
-    {
-        $category = $request->query->get('category');
-        $status = $request->query->get('status');
-
-        $data = $this->exportService->exportSignalementsToJSON($category, $status);
-
-        return $this->json([
-            'success' => true,
-            'count' => count($data),
-            'data' => $data,
-        ]);
-    }
-
     #[Route('/statistics', name: 'export_statistics', methods: ['GET'])]
     #[IsGranted('ROLE_MUNICIPAL_AGENT')]
     public function exportStatistics(): JsonResponse
