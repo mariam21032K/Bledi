@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller;
+namespace App\Controller\V1;
 
 use App\Entity\Signalement;
 use App\Entity\User;
@@ -22,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api/v1/signalements')]
+#[Route('/api/signalements')]
 #[IsGranted('ROLE_USER')]
 class SignalementController extends AbstractController
 {

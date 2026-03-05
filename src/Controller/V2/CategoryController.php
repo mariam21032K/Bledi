@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller;
+namespace App\Controller\V2;
 
 use App\Entity\Category;
 use App\Entity\AuditLog;
@@ -17,7 +17,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api/v2/categories')]
+#[Route('/api/categories')]
 #[IsGranted('ROLE_USER')]
 class CategoryV2Controller extends AbstractController
 {

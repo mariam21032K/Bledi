@@ -2,6 +2,7 @@
 
 namespace App\Controller\V1;
 
+use OpenApi\Attributes as OA;
 use App\Entity\AuditLog;
 use App\Entity\User;
 use App\Enum\UserRole;
@@ -20,7 +21,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api/v1', name: 'api_v1_')]
+#[Route('/api', name: 'api_v1_')]
 class AuthController extends AbstractController
 {
     public function __construct(
@@ -33,6 +34,25 @@ class AuthController extends AbstractController
     }
 
     #[Route('/login', name: 'login', methods: ['POST'])]
+    #[OA\Post(
+    path: "/api/login",
+    summary: "User login",
+    tags: ["Authentication"],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+    required: ["email", "password"],
+    properties: [
+        new OA\Property(property: "email", type: "string", example: "mariam@example.com"),
+        new OA\Property(property: "password", type: "string", example: "SecurePass1"),
+    ]
+)),
+    responses: [
+        new OA\Response(response: 200, description: "Login successful"),
+        new OA\Response(response: 401, description: "Invalid credentials"),
+        new OA\Response(response: 400, description: "Invalid input")
+    ]
+)]
     public function login(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -120,6 +140,30 @@ class AuthController extends AbstractController
     }
 
     #[Route('/register', name: 'register', methods: ['POST'])]
+   #[OA\Post(
+    path: "/api/register",
+    summary: "Register new user",
+    tags: ["Authentication"],
+    requestBody: new OA\RequestBody(
+    required: true,
+    content: new OA\JsonContent(       // ← add "content:" here
+        required: ["email", "password", "firstName", "lastName"],
+        properties: [
+            new OA\Property(property: "email", type: "string", example: "jane@example.com"),
+            new OA\Property(property: "password", type: "string", example: "Secure123"),
+            new OA\Property(property: "firstName", type: "string", example: "Jane"),
+            new OA\Property(property: "lastName", type: "string", example: "Doe"),
+            new OA\Property(property: "phone", type: "string", example: "+1-555-0100"),
+        ]
+    )
+),
+responses: [
+    new OA\Response(response: 201, description: "User registered successfully"),
+    new OA\Response(response: 400, description: "Validation error"),
+    new OA\Response(response: 409, description: "User already exists")
+   ]
+   )]
+
     public function register(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -222,6 +266,16 @@ class AuthController extends AbstractController
 
     #[Route('/me', name: 'me', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
+    #[OA\Get(
+    path: "/api/me",
+    summary: "Get current authenticated user",
+    tags: ["Authentication"],
+    security: [["bearerAuth" => []]],
+    responses: [
+        new OA\Response(response: 200, description: "User info"),
+        new OA\Response(response: 401, description: "Not authenticated")
+    ]
+)]
     public function me(): JsonResponse
     {
         $user = $this->getUser();
@@ -257,6 +311,15 @@ class AuthController extends AbstractController
 
     #[Route('/logout', name: 'logout', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
+    #[OA\Post(
+    path: "/api/logout",
+    summary: "Logout current user",
+    tags: ["Authentication"],
+    security: [["bearerAuth" => []]],
+    responses: [
+        new OA\Response(response: 200, description: "Logged out successfully")
+    ]
+)]
     public function logout(TokenStorageInterface $tokenStorage): JsonResponse
     {
         $user = $this->getUser();
@@ -281,6 +344,26 @@ class AuthController extends AbstractController
     }
 
     #[Route('/refresh', name: 'refresh', methods: ['POST'])]
+    #[OA\Post(
+    path: "/api/refresh",
+    summary: "Refresh access token",
+    tags: ["Authentication"],
+   requestBody: new OA\RequestBody(
+    required: true,
+    content: new OA\JsonContent(
+        required: ["refreshToken", "userId"],
+        properties: [
+            new OA\Property(property: "refreshToken", type: "string", example: "eyJ..."),
+            new OA\Property(property: "userId", type: "integer", example: 42),
+        ]
+    )                                  // ← closes JsonContent
+),                                     // ← closes RequestBody
+responses: [
+    new OA\Response(response: 200, description: "Token refreshed"),
+    new OA\Response(response: 401, description: "Invalid refresh token"),
+    new OA\Response(response: 404, description: "User not found")
+])]
+
     public function refresh(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -320,6 +403,15 @@ class AuthController extends AbstractController
 
     #[Route('/users/language', name: 'get_user_language', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
+    #[OA\Get(
+    path: "/api/users/language",
+    summary: "Get user language preference",
+    tags: ["User"],
+    security: [["bearerAuth" => []]],
+    responses: [
+        new OA\Response(response: 200, description: "Language retrieved")
+    ]
+)]
     public function getUserLanguage(): JsonResponse
     {
         /** @var User $user */
@@ -345,6 +437,25 @@ class AuthController extends AbstractController
 
     #[Route('/users/language', name: 'set_user_language', methods: ['PUT'])]
     #[IsGranted('ROLE_USER')]
+    #[OA\Put(
+    path: "/api/users/language",
+    summary: "Update user language preference",
+    tags: ["User"],
+    security: [["bearerAuth" => []]],
+    requestBody: new OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ["language"],
+            properties: [
+                new OA\Property(property: "language", type: "string", example: "en")
+            ]
+        )
+    ),
+    responses: [
+        new OA\Response(response: 200, description: "Language updated"),
+        new OA\Response(response: 400, description: "Invalid language")
+    ]
+)]
     public function setUserLanguage(Request $request): JsonResponse
     {
         /** @var User $user */

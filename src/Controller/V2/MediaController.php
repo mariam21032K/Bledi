@@ -1,6 +1,7 @@
 <?php
 
-namespace App\Controller;
+
+namespace App\Controller\V2;
 
 use App\Entity\Media;
 use App\Entity\User;
@@ -20,7 +21,7 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/api/v2/media')]
+#[Route('/api/media')]
 #[IsGranted('ROLE_USER')]
 class MediaV2Controller extends AbstractController
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller;
+namespace App\Controller\V1;
 
 use App\Entity\User;
 use App\Enum\SignalementStatus;
@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/api/v1/search')]
+#[Route('/api/search')]
 #[IsGranted('ROLE_USER')]
 class SearchController extends AbstractController
 {

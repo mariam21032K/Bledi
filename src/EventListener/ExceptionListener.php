@@ -2,6 +2,7 @@
 
 namespace App\EventListener;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,6 +15,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ExceptionListener implements EventSubscriberInterface
 {
+    public function __construct(private LoggerInterface $logger) {}
+
     public static function getSubscribedEvents(): array
     {
         return [
@@ -26,14 +29,21 @@ class ExceptionListener implements EventSubscriberInterface
         $exception = $event->getThrowable();
         $request = $event->getRequest();
 
-        // Only handle API requests
-        if (!str_starts_with($request->getPathInfo(), '/api/')) {
+        // LOG THE REAL ERROR
+        $this->logger->error('REAL EXCEPTION: ' . $exception->getMessage(), [
+            'exception' => $exception,
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+        ]);
+
+        if (!str_starts_with($request->getPathInfo(), '/api/') || str_starts_with($request->getPathInfo(), '/api/doc')) {
             return;
         }
 
         $response = $this->createJsonResponse($exception);
         $event->setResponse($response);
     }
+    
 
     private function createJsonResponse(\Throwable $exception): JsonResponse
     {

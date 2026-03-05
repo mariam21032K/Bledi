@@ -34,7 +34,7 @@ class AuditLog
     private bool $isActive = true;
 
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'auditLogs')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?User $user = null;
 
     public function __construct()

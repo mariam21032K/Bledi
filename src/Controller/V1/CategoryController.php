@@ -1,7 +1,7 @@
 <?php
 
-namespace App\Controller;
-
+namespace App\Controller\V1;
+use App\Entity\User;
 use App\Entity\Category;
 use App\Entity\AuditLog;
 use App\Repository\CategoryRepository;
@@ -16,7 +16,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api/v1/categories')]
+#[Route('/api/categories')]
 #[IsGranted('ROLE_USER')]
 class CategoryController extends AbstractController
 {
@@ -52,6 +52,9 @@ class CategoryController extends AbstractController
     public function createCategory(Request $request): JsonResponse
     {
         $user = $this->getUser();
+        $user = $this->entityManager->getRepository(\App\Entity\User::class)
+            ->findOneBy(['email' => $user->getUserIdentifier()]);
+
         $data = json_decode($request->getContent(), true);
 
         $constraint = new Assert\Collection([
@@ -80,8 +83,8 @@ class CategoryController extends AbstractController
         $category->setIsActive(true);
         $category->setCreatedAt(new \DateTimeImmutable());
         $category->setUpdatedAt(new \DateTimeImmutable());
-        $category->setCreatedBy($user);
-        $category->setUpdatedBy($user);
+        $category->setCreatedBy($user->getEmail());
+        $category->setUpdatedBy($user->getEmail());
 
         $this->entityManager->persist($category);
         $this->entityManager->flush();
@@ -91,7 +94,6 @@ class CategoryController extends AbstractController
         $auditLog->setEntityName('Category');
         $auditLog->setEntityId($category->getId());
         $auditLog->setChanges($data);
-        $auditLog->setTimestamp(new \DateTimeImmutable());
         $auditLog->setUser($user);
         $auditLog->setIsActive(true);
         $this->entityManager->persist($auditLog);
@@ -103,8 +105,11 @@ class CategoryController extends AbstractController
     #[Route('/{id}', name: 'update_category', methods: ['PUT'])]
     #[IsGranted('ROLE_ADMIN')]
     public function updateCategory(Category $category, Request $request): JsonResponse
+
     {
         $user = $this->getUser();
+        $user = $this->entityManager->getRepository(User::class)
+            ->findOneBy(['email' => $user->getUserIdentifier()]);
         $data = json_decode($request->getContent(), true) ?? [];
         $changes = [];
 
@@ -133,7 +138,7 @@ class CategoryController extends AbstractController
         }
 
         $category->setUpdatedAt(new \DateTimeImmutable());
-        $category->setUpdatedBy($user);
+        $category->setUpdatedBy($user->getEmail());
         $this->entityManager->flush();
 
         $auditLog = new AuditLog();
@@ -155,6 +160,8 @@ class CategoryController extends AbstractController
     public function deleteCategory(Category $category): JsonResponse
     {
         $user = $this->getUser();
+        $user = $this->entityManager->getRepository(User::class)
+            ->findOneBy(['email' => $user->getUserIdentifier()]);
 
         $activeSignalements = $this->entityManager->getRepository(\App\Entity\Signalement::class)->findBy(['category' => $category, 'isActive' => true]);
         if (count($activeSignalements) > 0) {
@@ -163,8 +170,7 @@ class CategoryController extends AbstractController
 
         $category->setIsActive(false);
         $category->setUpdatedAt(new \DateTimeImmutable());
-        $category->setUpdatedBy($user);
-        $this->entityManager->flush();
+        $category->setUpdatedBy($user->getEmail());        $this->entityManager->flush();
 
         $auditLog = new AuditLog();
         $auditLog->setAction('DELETE');

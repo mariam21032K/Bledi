@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller;
+namespace App\Controller\V2;
 
 use App\Entity\AuditLog;
 use App\Entity\User;
@@ -20,7 +20,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-#[Route('/api/v2', name: 'api_v2_')]
+#[Route('/api', name: 'api_v2_')]
 class AuthV2Controller extends AbstractController
 {
     public function __construct(

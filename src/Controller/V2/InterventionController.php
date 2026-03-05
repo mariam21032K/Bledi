@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller;
+namespace App\Controller\V2;
 
 use App\Entity\Intervention;
 use App\Entity\User;
@@ -19,8 +19,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-
-#[Route('/api/v2/interventions')]
+#v2 mahtouta 
+#[Route('/api/interventions')]
 #[IsGranted('ROLE_MUNICIPAL_AGENT')]
 class InterventionV2Controller extends AbstractController
 {

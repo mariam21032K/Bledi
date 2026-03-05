@@ -1,7 +1,6 @@
 <?php
 
-namespace App\Controller;
-
+namespace App\Controller\V2;
 use App\Service\ExportService;
 use DateTime;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -12,7 +11,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/api/v2/export')]
+#[Route('/api/export')]
 #[IsGranted('ROLE_USER')]
 class ExportV2Controller extends AbstractController
 {

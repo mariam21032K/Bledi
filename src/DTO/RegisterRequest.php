@@ -1,8 +1,20 @@
 <?php
 
 namespace App\DTO;
-
+use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
+
+#[OA\Schema(
+    schema: "RegisterRequest",
+    required: ["email", "password", "firstName", "lastName"],
+    properties: [
+        new OA\Property(property: "email", type: "string", example: "user@example.com"),
+        new OA\Property(property: "password", type: "string", example: "Password123"),
+        new OA\Property(property: "firstName", type: "string", example: "Mariam"),
+        new OA\Property(property: "lastName", type: "string", example: "Ben Ali"),
+        new OA\Property(property: "phone", type: "string", example: "12345678")
+    ]
+)]
 
 class RegisterRequest
 {
